@@ -9,22 +9,21 @@ export default async function Containers(
   const response = await getContainers();
   const containers = response.data;
   const rawParams = await params.searchParams;
-  
-  
-
   const { status } = rawParams;
+  const {searchKey} = rawParams;
 
   function handleParams() {
-    
     const cleanedParams = Object.entries(rawParams).filter(
       (entry): entry is [string, string] => {
-        const [_,value] = entry;
-        return typeof value === "string" && value.trim() !== "" &&  !Array.isArray(value);
+        const [_, value] = entry;
+        return (
+          typeof value === "string" &&
+          value.trim() !== "" &&
+          !Array.isArray(value)
+        );
       },
     );
-    
-    console.log(cleanedParams);
-    
+
     const newQueryString = new URLSearchParams(cleanedParams).toString();
     const targetUrl = newQueryString
       ? `/customer/containers?${newQueryString}`
@@ -41,27 +40,36 @@ export default async function Containers(
       : "/customer/containers";
 
     if (targetUrl !== currentUrl) redirect(targetUrl, RedirectType.replace);
-
-
   }
 
-  let filteredContainers: Container[] = [];
+  let filteredContainers: Container[] = [...containers];
+
+  if (typeof searchKey === "string") {
+    const filteredBySearch = filteredContainers.filter(
+      (container) => container.cargoType.toLowerCase().includes(searchKey.toLowerCase()),
+    );
+    filteredContainers = filteredBySearch.length > 0 ? filteredBySearch: filteredContainers;
+  }
 
   if (typeof status === "string") {
-    filteredContainers = containers.filter(
+    const  filteredByStatus = filteredContainers.filter(
       (container) => container.status.toString() === status,
     );
+    filteredContainers = filteredByStatus.length > 0 ? filteredByStatus: filteredContainers;
   }
-  if (status === "" || status === undefined) {
+
+  if (status === "" && status === undefined 
+    && searchKey === "" && searchKey === undefined
+  ) {
     filteredContainers = [...containers];
   }
 
   handleParams();
+
   function createRows() {
     return filteredContainers.map((container) => {
       return (
         <tr key={container.id}>
-          <td className="text-center">{toContainerRow(container).id}</td>
           <td className="text-center">{toContainerRow(container).number}</td>
           <td className="text-center">{toContainerRow(container).type}</td>
           <td className="text-center">{toContainerRow(container).weightKg}</td>
@@ -81,6 +89,7 @@ export default async function Containers(
     <div>
       <h1>کانتینر ها</h1>
       <form method="get">
+        <input defaultValue={searchKey} name="searchKey" placeholder="جستجو"></input>
         <select name="status" defaultValue={status}>
           <option value="">همه</option>
           {CONTAINER_STATUSES.map((opt) => (
@@ -96,7 +105,6 @@ export default async function Containers(
         >
           <thead className="bg-gray-100 text-gray-700">
             <tr>
-              <th className="text-center p-3">شناسه</th>
               <th className="text-center p-3">شماره</th>
               <th className="text-center p-3">نوع</th>
               <th className="text-center p-3">وزن</th>

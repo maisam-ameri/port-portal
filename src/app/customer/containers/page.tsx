@@ -9,8 +9,8 @@ export default async function Containers(
   const response = await getContainers();
   const containers = response.data;
   const rawParams = await params.searchParams;
-  const { status } = rawParams;
-  const {searchKey} = rawParams;
+  let { status } = rawParams;
+  const { searchKey } = rawParams;
 
   function handleParams() {
     const cleanedParams = Object.entries(rawParams).filter(
@@ -45,25 +45,42 @@ export default async function Containers(
   let filteredContainers: Container[] = [...containers];
 
   if (typeof searchKey === "string") {
-    const filteredBySearch = filteredContainers.filter(
-      (container) => container.cargoType.toLowerCase().includes(searchKey.toLowerCase()),
+    const splited = searchKey.split(" ");
+    const result = filteredContainers.filter((container) =>
+      splited.some((key) =>
+        container.cargoType.toLowerCase().includes(key.toLowerCase().trim()),
+      ),
     );
-    filteredContainers = filteredBySearch.length > 0 ? filteredBySearch: filteredContainers;
+
+    console.log(result);
+
+    const filteredBySearch = filteredContainers.filter((container) =>
+      splited.some((key) =>
+        container.cargoType.toLowerCase().includes(key.toLowerCase().trim()),
+      ),
+    );
+    filteredContainers =
+      filteredBySearch.length > 0 ? filteredBySearch : filteredContainers;
   }
 
   if (typeof status === "string") {
-    const  filteredByStatus = filteredContainers.filter(
+    const filteredByStatus = filteredContainers.filter(
       (container) => container.status.toString() === status,
     );
-    filteredContainers = filteredByStatus.length > 0 ? filteredByStatus: filteredContainers;
+
+    if (filteredByStatus.length > 0) filteredContainers = filteredByStatus;
+    else status = "";
   }
 
-  if (status === "" && status === undefined 
-    && searchKey === "" && searchKey === undefined
+  if (
+    status === "" &&
+    status === undefined &&
+    searchKey === "" &&
+    searchKey === undefined
   ) {
     filteredContainers = [...containers];
   }
-
+  console.log(status);
   handleParams();
 
   function createRows() {
@@ -89,7 +106,11 @@ export default async function Containers(
     <div>
       <h1>کانتینر ها</h1>
       <form method="get">
-        <input defaultValue={searchKey} name="searchKey" placeholder="جستجو"></input>
+        <input
+          defaultValue={searchKey}
+          name="searchKey"
+          placeholder="جستجو"
+        ></input>
         <select name="status" defaultValue={status}>
           <option value="">همه</option>
           {CONTAINER_STATUSES.map((opt) => (
